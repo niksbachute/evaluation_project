@@ -32,8 +32,8 @@ Global options: `--db PATH` (default `actiontrack.db`, env `ACTIONTRACK_DB`), `-
 - `--dry-run` prints the email. `--eml` writes `drafts/<name>.eml`.
 - Default mode creates a **Gmail draft through the Gmail MCP connector**. A plain CLI can't speak to a
   claude.ai connector itself, so it runs headless Claude Code (`claude -p`) with `--allowedTools` limited to
-  the single create-draft tool (`mcp__claude_ai_Gmail__create_draft`, override via `ACTIONTRACK_GMAIL_TOOL`).
-  No send tool is ever allowed. Requires the `claude` CLI on PATH with the Gmail connector authorised.
+  the single create-draft tool (`mcp__claude_ai_Gmail__create_draft`, override via `ACTIONTRACK_GMAIL_TOOL`),
+  built-in tools off, `dontAsk` permissions and an empty working directory. No send tool is ever allowed. Requires the `claude` CLI on PATH with the Gmail connector authorised.
 - If that fails, the tool says so on stderr, saves the `.eml` fallback, and exits with code 3.
 
 Exit codes: 0 ok, 1 unknown id, 2 usage/bad input, 3 Gmail draft not created.
@@ -43,8 +43,10 @@ Exit codes: 0 ok, 1 unknown id, 2 usage/bad input, 3 Gmail draft not created.
 - **Duplicates**: same owner + similar task text (fuzzy) = one item with several source meetings; status and due date come from the latest meeting.
 - **Same first name** (two Priyas, two Rahuls): resolved by full name / initial (`Priya N.`) or by the meeting's attendee list. If still unclear the item is shown as `Priya?`, reported at ingest, and never guessed. `list --owner Priya` shows both Priyas plus the ambiguous ones.
 - **No owner / group owner** (`Everyone`, `Team`, `TBD`, `Someone`): kept, shown as `(everyone)` etc.
-- **No due date**: kept, never overdue. Relative dates ("by Friday", "next Tuesday", "end of next week", "mid-October") resolve against the meeting date.
-- **Malformed notes** (no/invalid date, binary): skipped and listed. Non-`.md` files are ignored.
+- **No due date**: kept, never overdue, and reported as a warning at ingest. Relative dates ("by Friday", "next Tuesday", "end of next week", "mid-October") resolve against the meeting date.
+- **Malformed notes** (no/invalid date, binary, anything unparseable): skipped and listed, never fatal. Non-`.md` files are ignored; subfolders are reported, not scanned.
+- **Edited notes**: re-ingesting picks up checkbox/due-date edits and drops lines that were removed (unless you marked the item done).
+- **Mis-parsed owners**: a name must look like a name; anything unknown is warned about at ingest and `followup --all` never emails it.
 - Task-like lines inside code fences, HTML comments and `>` quotes are not action items.
 
 ## Tests
@@ -52,5 +54,5 @@ Exit codes: 0 ok, 1 unknown id, 2 usage/bad input, 3 Gmail draft not created.
 ```
 python -m pytest -q
 ```
-Unit tests plus end-to-end tests over `notes/` (35 files: 3 skipped as malformed, 1 `.txt` ignored). Gmail is mocked.
+Unit tests, store tests, regression tests and end-to-end tests over `notes/` (35 files: 3 skipped as malformed, 1 `.txt` ignored). Gmail is mocked.
 # evaluation_project

@@ -1,0 +1,6 @@
+.actiontrack
+actiontrack.db
+drafts/
+__pycache__/
+.pytest_cache/
+notes/
